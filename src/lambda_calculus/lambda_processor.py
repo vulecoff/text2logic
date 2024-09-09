@@ -145,3 +145,35 @@ def beta_reduce(expr: LambdaExpr, max_iter=100):
         raise Exception(f"Maximum iterations for beta-reduction reached for expression: \
                          {expr}. Last executed reduction: {cur}")
     return cur
+
+from typing import Callable, Dict
+def uniqueify_var_names(expr: LambdaExpr, scoped_id_incrementer: Callable[[], int]):
+    """
+    Helper function, assign var name inside lambda expr.
+    scoped_id_incrementer:
+    """
+    def _uniqueify_var_names(expr: LambdaExpr, vars_mp: Dict[str, int]):
+        if isinstance(expr, Var): 
+            name = expr.symbol
+            if name not in vars_mp: 
+                id = scoped_id_incrementer()
+                vars_mp[name] = id
+            new_name = f"<{vars_mp[name]}>"
+            return Var(new_name)
+        elif isinstance(expr, AndOpr):
+            return AndOpr(*[_uniqueify_var_names(e, vars_mp) for e in expr.operands])
+        elif isinstance(expr, Apply):
+            return Apply(
+                _uniqueify_var_names(expr.functor, vars_mp), 
+                *[_uniqueify_var_names(a, vars_mp) for a in expr.arguments]
+            )
+        elif isinstance(expr, Abstr):
+            return Abstr([_uniqueify_var_names(p, vars_mp) for p in expr.parameters], 
+                         _uniqueify_var_names(expr.body, vars_mp))
+        elif isinstance(expr, Const):
+            return Const(expr.symbol)
+        
+        raise Exception(invalid_expr_msg.format(type(expr), expr))
+    
+    dt = {}
+    return _uniqueify_var_names(expr, dt)

@@ -1,6 +1,6 @@
 import unittest
 from src.lambda_calculus.lambda_ast import Abstr, Var, AndOpr, Const, Apply
-from src.lambda_calculus.reducer import beta_reduce, alpha_reduce
+from src.lambda_calculus.lambda_processor import beta_reduce, alpha_reduce
 
 class TestAlphaReduce(unittest.TestCase):
     def test_1(self):

@@ -1,8 +1,8 @@
 """
 Abstract Syntax Definition for Lambda Calculus
 """
-from __future__ import annotations
 from copy import deepcopy
+from typing import Tuple
 
 class LambdaExpr:
     """Abstract class for Lambda Expression"""
@@ -15,7 +15,7 @@ class Var(LambdaExpr):
     def __str__(self) -> str:
         return self.symbol
     def __repr__(self) -> str:
-        return self.__str__()
+        return self.symbol
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Var):
             return self.symbol == other.symbol
@@ -27,7 +27,7 @@ class Const(LambdaExpr):
     def __str__(self) -> str:
         return self.symbol
     def __repr__(self) -> str:
-        return self.__str__()
+        return self.symbol
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Const):
             return self.symbol == other.symbol
@@ -48,7 +48,7 @@ class Abstr(LambdaExpr):
     def __str__(self) -> str:
         return "(L{}. {})".format("".join(list(map(str, self.parameters))), str(self.body))
     def __repr__(self) -> str:
-        return self.__str__()
+        return "(L{}. {})".format("".join(list(map(repr, self.parameters))), repr(self.body))
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Abstr):
             is_eq = True
@@ -61,7 +61,7 @@ class Abstr(LambdaExpr):
             return self.body.__eq__(other.body)
         return False
 
-    def split(self):       
+    def split(self) -> Tuple[LambdaExpr, str]:       
         """
         Split a (syntatic-sugar) multi-parameters lambda into 2 lambdas
         Return identity of the lambda and its body
@@ -83,7 +83,7 @@ class Apply(LambdaExpr):
         self.functor = functor
         self.arguments = list(arguments)
     def __repr__(self):
-        return "({} {})".format(str(self.functor), " ".join(list(map(str, self.arguments))))
+        return "({} {})".format(repr(self.functor), " ".join(list(map(repr, self.arguments))))
     def __str__(self): 
         """Predicate-style nice print"""
         return "{}({})".format(str(self.functor), ", ".join(list(map(str, self.arguments))))
@@ -111,7 +111,7 @@ class AndOpr(LambdaExpr):
     def __str__(self):
         return " & ".join(list(map(str, self.operands)))
     def __repr__(self):
-        return self.__str__()
+        return " & ".join(list(map(repr, self.operands)))
     def __eq__(self, other: object) -> bool:
         if isinstance(other, AndOpr):
             if len(self.operands) != len(other.operands): 
