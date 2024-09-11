@@ -2,7 +2,7 @@
 Abstract Syntax Definition for Lambda Calculus
 """
 from copy import deepcopy
-from typing import Tuple
+from typing import Tuple, List
 
 class LambdaExpr:
     """Abstract class for Lambda Expression"""
@@ -10,8 +10,8 @@ class LambdaExpr:
         pass 
 
 class Var(LambdaExpr):
-    def __init__(self, symbol):
-        self.symbol = symbol
+    def __init__(self, symbol: str):
+        self.symbol: str = symbol
     def __str__(self) -> str:
         return self.symbol
     def __repr__(self) -> str:
@@ -22,8 +22,8 @@ class Var(LambdaExpr):
         return False
 
 class Const(LambdaExpr):
-    def __init__(self, symbol):
-        self.symbol = symbol
+    def __init__(self, symbol: str):
+        self.symbol: str = symbol
     def __str__(self) -> str:
         return self.symbol
     def __repr__(self) -> str:
@@ -108,10 +108,12 @@ class AndOpr(LambdaExpr):
     """
     def __init__(self, *args):
         self.operands = list(args)
+        if len(self.operands) < 2: 
+            raise Exception("And-operator requires at least 2 operands.")
     def __str__(self):
         return " & ".join(list(map(str, self.operands)))
     def __repr__(self):
-        return " & ".join(list(map(repr, self.operands)))
+        return f"( {' & '.join(list(map(repr, self.operands))) } )"
     def __eq__(self, other: object) -> bool:
         if isinstance(other, AndOpr):
             if len(self.operands) != len(other.operands): 
@@ -121,3 +123,15 @@ class AndOpr(LambdaExpr):
                     return False
             return True
         return False
+    
+    def flatten(self): 
+        return AndOpr(*self._flatten())
+
+    def _flatten(self) -> List[LambdaExpr]:
+        ret = []
+        for op in self.operands: 
+            if isinstance(op, AndOpr):
+                ret.extend(op._flatten())
+            else: 
+                ret.append(op)
+        return ret

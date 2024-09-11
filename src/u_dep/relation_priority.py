@@ -1,23 +1,45 @@
 relation_priority = {
-    "l-ROOT": -1,
-    "l-amod": 10, 
-    "l-compound": 10,
-    "l-det": 15, 
-    "l-quantmod": 15,
-    "l-cc": 15,
-    "l-acl": 16, 
-    "l-cop": 20, 
-    "l-dobj": 20, 
-    "l-auxpass": 30, 
-    "l-aux": 30,
-    "l-xcomp": 30, 
-    "l-nmod": 40, 
-    "l-advmod": 40, 
-    "l-ccomp": 40,
-    "l-mark": 50,
-    "l-nsubj": 60, 
-    "l-case": 70,
-    "l-punct": 90
+    "ROOT": -1,
+    "amod": 2,
+    "nn": 2, 
+    "num": 2,
+    "quantmod": 2, 
+    "nmod": 2,
+    
+    "dobj": 10, 
+    "pobj": 10, 
+    "aux": 10,
+    "expl": 10, 
+    "prt": 10,
+    "pcomp": 10, 
+
+    "attr": 30, 
+    "prep": 30, 
+    "det": 30, 
+    "auxpass": 30, 
+    "acomp": 30, 
+    "rel": 30, 
+
+    "conj": 35, # TODO: sep to conj-np, vp, etc
+    "cc": 35,
+    "neg": 35,
+    "dep": 35,
+
+    "iobj": 40,
+    "appos": 40,
+
+    "nsubj": 45,
+    "nsubjpass": 45,
+
+    "mark": 50, 
+    "poss": 50,
+
+    "npavmod": 50, 
+    "advmod": 50, 
+    "advcl": 50, 
+    "tmod": 50, # TODO
+
+    "punct": 100,
 }
 
 from warnings import warn
@@ -29,4 +51,5 @@ class RelationPriority:
     def get(self, label: str) -> int: 
         if label not in relation_priority: 
             warn(f"Relation {label} has priority not specified.")
+            return 500
         return relation_priority[label]

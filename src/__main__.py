@@ -28,6 +28,16 @@ print(dep)
 
 tf.assign_lambda(dep)
 
-print(tf.compose_semantics(dep))
+full_lmbd = tf.build_lambda_tree(dep)
+lmbd = tf.compose_semantics(dep)
 
+def alphabet_incrementer(): 
+    alphabet = [chr(ord('a') + i) for i in range(26)]
+    for z in alphabet: 
+        yield z
 
+print(full_lmbd)
+print(lmbd)
+from .lambda_calculus.lambda_processor import uniqueify_var_names
+l = uniqueify_var_names(lmbd, alphabet_incrementer())
+print(l)

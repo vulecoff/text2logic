@@ -146,20 +146,19 @@ def beta_reduce(expr: LambdaExpr, max_iter=100):
                          {expr}. Last executed reduction: {cur}")
     return cur
 
-from typing import Callable, Dict
-def uniqueify_var_names(expr: LambdaExpr, scoped_id_incrementer: Callable[[], int]):
+from typing import Dict, Generator
+def uniqueify_var_names(expr: LambdaExpr, id_incrementer: Generator[str, None, None]):
     """
     Helper function, assign var name inside lambda expr.
     scoped_id_incrementer:
     """
-    def _uniqueify_var_names(expr: LambdaExpr, vars_mp: Dict[str, int]):
+    def _uniqueify_var_names(expr: LambdaExpr, vars_mp: Dict[str, str]):
         if isinstance(expr, Var): 
             name = expr.symbol
             if name not in vars_mp: 
-                id = scoped_id_incrementer()
+                id = next(id_incrementer)
                 vars_mp[name] = id
-            new_name = f"<{vars_mp[name]}>"
-            return Var(new_name)
+            return Var(vars_mp[name])
         elif isinstance(expr, AndOpr):
             return AndOpr(*[_uniqueify_var_names(e, vars_mp) for e in expr.operands])
         elif isinstance(expr, Apply):

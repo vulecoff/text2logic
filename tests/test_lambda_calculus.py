@@ -2,6 +2,26 @@ import unittest
 from src.lambda_calculus.lambda_ast import Abstr, Var, AndOpr, Const, Apply
 from src.lambda_calculus.lambda_processor import beta_reduce, alpha_reduce
 
+
+class TestLambdaAst(unittest.TestCase): 
+    def test_AndOpr_Flatten(self):
+        expr = AndOpr(
+            Var('x'), 
+            AndOpr(
+                Var('y'),
+                Var('z'), 
+                AndOpr(
+                    Var('u'), 
+                    AndOpr(Var('v'), Var('w'))
+                )
+            )
+        )
+        expected = AndOpr(Var('x'), Var('y'), Var('z'), Var('u'), Var('v'), Var('w'))
+        actual = expr.flatten()
+        self.assertEqual(actual, expected)
+    def test_AndOpr_constructor(self):
+        self.assertRaises(Exception, AndOpr, Var('x'))
+
 class TestAlphaReduce(unittest.TestCase):
     def test_1(self):
         expr = Abstr(
