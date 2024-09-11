@@ -14,6 +14,38 @@ def build_deptree_from_spacy(node: Token):
         deptree.add_child(build_deptree_from_spacy(c))
     return deptree
 
+def _merge_compounds(root: DepTree):
+    if root.is_leaf():
+        return
+    idx_toremove = []
+    for i, c in enumerate(root.children):
+        c: DepTree
+        if c.label() == "compound":
+            idx_toremove.append(i)
+            root.set_child(0, DepTree(c.nth_child(0).label() + "_" + root.nth_child(0).label(), is_word=True))
+        else: 
+            _merge_compounds(c)
+    idx_toremove.reverse()
+    for idx in idx_toremove: 
+        root.pop_child(idx)
+
+def _merge_ltr(root: DepTree, dep: str):
+    applicable = ["xcomp", "prt"]
+    assert dep in applicable
+    if root.is_leaf():
+        return
+    idx_toremove = []
+    for i, c in enumerate(root.children):
+        c: DepTree
+        if c.label() == dep:
+            idx_toremove.append(i)
+            root.set_child(0, DepTree(root.nth_child(0).label() + "_" + c.nth_child(0).label(), is_word=True))
+        else: 
+            _merge_ltr(c, dep)
+    idx_toremove.reverse()
+    for idx in idx_toremove: 
+        root.pop_child(idx)
+
 class Transformer: 
     """Transformer for Dependency tree
     """
@@ -87,7 +119,6 @@ class Transformer:
             self.build_lambda_tree(root.nth_child(1))
         )
 
-
     def compose_semantics(self, root: DepTree) -> LambdaExpr:
         """
         Compose semantics of dep tree using beta-reduction
@@ -111,3 +142,11 @@ class Transformer:
             ss = "\n".join([f"\t{z}" for z in ss])
             s += "\n" + ss 
         return s
+    
+    def preprocess(self, root: DepTree) -> None: 
+        """ Preprocess dependency tree to make lambda composition easier
+            NOTE: this mutates the tree
+        """
+        _merge_compounds(root)
+        _merge_ltr(root, "xcomp")
+        _merge_ltr(root, "prt")

@@ -10,12 +10,20 @@ label
 
 procedures: --assign lambda, build_lambda, 
 """
+from typing import List
 
 class Tree:
     def __init__(self) -> None:
-        self.children: list = []
+        self.children: List["Tree"] = []
+        self.parent: "Tree" = None
     def add_child(self, node: "Tree") -> None: 
         self.children.append(node)
+        assert node.parent == None
+        node.parent = self
+    def pop_child(self, idx: int):
+        self.children.pop(idx)
+    def set_child(self, idx: int, node: "Tree"): 
+        self.children[idx] = node
     def add_children(self, *nodes) -> None: 
         for n in nodes: 
             self.add_child(n)
@@ -32,7 +40,6 @@ class DepTree(Tree):
     """
     For now, keep track of label, word/dependencies, and associated lambda expr
     """
-
     def __init__(self, label: str, is_word: bool = False, is_dep:bool = False) -> None:
         super().__init__()
         if [is_word, is_dep].count(True) != 1: 

@@ -23,6 +23,13 @@ def _invert(rel: str):
             Apply(Const(rel), Var('x'), Var('z'))
         )
     )
+def _coord(rel: str):
+    return Abstr(
+            [Var('f'), Var('g'), Var('z')],
+            AndOpr(
+                Apply(Var('f'), Var('x')), Apply(Var('g'), Var('y')), Apply(Const(rel), Var('z'), Var('x'), Var('y'))
+            )
+        )
 def _merge():
     return Abstr(
         [Var('f'), Var('g'), Var('z')],
@@ -44,20 +51,23 @@ n2l_common_dict = {
     "acomp": _copy("arg2"),
     "csubj": _copy("arg1"),
     "csubjpass": _copy("arg2"),
+    "attr": _copy("arg2"),
+    "expl": _copy("arg1"),
 
     "relcl": _copy("relcl"),
     "pcomp": _copy("pcomp"),
-    "npadvmod": _copy("npadvmod"),
     "preconj": _copy("preconj"),
     "prep": _copy("prep"),
     "pobj": _copy("pobj"),
-    "advmod": _copy("advmod"),
-    "compound": _copy("compound"),
     "poss": _copy("belongs"),
     "ccomp": _copy("ccomp"),
-    "xcomp": _copy("xcomp"),
-    "attr": _copy("attr"),
-    "prt": _copy("prt"),
+    # "xcomp": _copy("xcomp"), NOTE: preprocessed
+    # "prt": _copy("prt"), NOTE: preprocessed
+    "npadvmod": _copy("npadvmod"),
+
+    "conj": _coord("conj"),
+    # "compound": _copy("compound"), NOTE: preprocessed
+    "advmod": _coord("advmod"),
 
     "acl": _invert("acl"),
     "advcl": _invert("advcl"),
@@ -65,7 +75,6 @@ n2l_common_dict = {
     "appos": _merge(),
     "amod": _merge(),
     "nummod": _merge(),
-
 
     "cc": _head(),
     "punct": _head(),
@@ -80,7 +89,6 @@ n2l_common_dict = {
     "parataxis": _head(),
     "intj": _head(),
     "mark": _head(),
-    "expl": _head(),
 }
 def node_to_lambda(node: DepTree):
     """
@@ -95,14 +103,7 @@ def node_to_lambda(node: DepTree):
     def case(lbl: str): 
         return lbl == node.label()
     
-    if case("conj"): 
-        return Abstr(
-            [Var('f'), Var('g'), Var('z')],
-            AndOpr(
-                Apply(Var('f'), Var('x')), Apply(Var('g'), Var('y')), Apply(Const('conj'), Var('z'), Var('x'), Var('y'))
-            )
-        )
-    elif case('neg'): 
+    if case('neg'): 
         return Abstr(
             [Var('f'), Var('g'), Var('z')], 
             AndOpr(
