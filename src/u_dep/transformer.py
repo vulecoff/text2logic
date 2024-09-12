@@ -14,37 +14,40 @@ def build_deptree_from_spacy(node: Token):
         deptree.add_child(build_deptree_from_spacy(c))
     return deptree
 
-def _merge_compounds(root: DepTree):
+def _merge_compounds(root: DepTree) -> DepTree: 
     if root.is_leaf():
-        return
-    idx_toremove = []
+        return root.copy_node_data()
+    fresh_root = root.copy_node_data()
     for i, c in enumerate(root.children):
         c: DepTree
         if c.label() == "compound":
-            idx_toremove.append(i)
-            root.set_child(0, DepTree(c.nth_child(0).label() + "_" + root.nth_child(0).label(), is_word=True))
+            fresh_root.set_child(0, DepTree(c.nth_child(0).label() + "_" + fresh_root.nth_child(0).label(), is_word=True))
+            assert c.num_children() == 1 # this works under the assumption that all compound is d
+                                        # directly connected to rootw and without children except its word
         else: 
-            _merge_compounds(c)
-    idx_toremove.reverse()
-    for idx in idx_toremove: 
-        root.pop_child(idx)
+            fresh_root.add_child(_merge_compounds(c))
+    return fresh_root
 
-def _merge_ltr(root: DepTree, dep: str):
+def _merge_ltr(root: DepTree, dep: str) -> DepTree: 
     applicable = ["xcomp", "prt"]
     assert dep in applicable
     if root.is_leaf():
-        return
-    idx_toremove = []
+        return root.copy_node_data()
+    fresh_root = root.copy_node_data()
     for i, c in enumerate(root.children):
         c: DepTree
         if c.label() == dep:
-            idx_toremove.append(i)
-            root.set_child(0, DepTree(root.nth_child(0).label() + "_" + c.nth_child(0).label(), is_word=True))
+            child0: DepTree = fresh_root.nth_child(0)
+            x = _merge_ltr(c, dep)
+            fresh_root.set_child(0, DepTree(
+                label=child0.label() + "_" + x.nth_child(0).label(), 
+                is_word=True
+            ))
+            for j in range(1, x.num_children()):
+                fresh_root.add_child(x.nth_child(j))
         else: 
-            _merge_ltr(c, dep)
-    idx_toremove.reverse()
-    for idx in idx_toremove: 
-        root.pop_child(idx)
+            fresh_root.add_child(_merge_ltr(c, dep))
+    return fresh_root
 
 class Transformer: 
     """Transformer for Dependency tree
@@ -142,11 +145,12 @@ class Transformer:
             ss = "\n".join([f"\t{z}" for z in ss])
             s += "\n" + ss 
         return s
-    
+
     def preprocess(self, root: DepTree) -> None: 
         """ Preprocess dependency tree to make lambda composition easier
             NOTE: this mutates the tree
         """
-        _merge_compounds(root)
-        _merge_ltr(root, "xcomp")
-        _merge_ltr(root, "prt")
+        root = _merge_compounds(root)
+        root = _merge_ltr(root, "xcomp")
+        root = _merge_ltr(root, "prt")
+        return root

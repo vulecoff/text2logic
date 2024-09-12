@@ -18,12 +18,14 @@ class Tree:
         self.parent: "Tree" = None
     def add_child(self, node: "Tree") -> None: 
         self.children.append(node)
-        assert node.parent == None
         node.parent = self
     def pop_child(self, idx: int):
+        self.children[idx].parent = None
         self.children.pop(idx)
     def set_child(self, idx: int, node: "Tree"): 
+        self.children[idx].parent = None
         self.children[idx] = node
+        self.children[idx].parent = self
     def add_children(self, *nodes) -> None: 
         for n in nodes: 
             self.add_child(n)
@@ -63,13 +65,23 @@ class DepTree(Tree):
         elif self.is_dep():
             return DEP_PREFIX + self.label()
         raise Exception("Code should not reach here.")
-    
     def set_lambda_expr(self, expr: LambdaExpr):
         self._lambda_expr = expr
     def lambda_expr(self) -> LambdaExpr:
         if self._lambda_expr is None: 
             raise Exception("Lambda expression is not set for this TreeNode.")
         return self._lambda_expr
+    
+    def copy_node_data(self):
+        """Return a shallow copy of this node data without any tree-related pointers"""
+        dt =  DepTree(
+            self.label(), 
+            is_word=self.is_word(),
+            is_dep=self.is_dep()
+        )
+        if self._lambda_expr != None:
+            dt.set_lambda_expr(self._lambda_expr)
+        return dt
     
     def __repr__(self) -> str:
         s = self.prefixed_label()
@@ -80,3 +92,18 @@ class DepTree(Tree):
             ss = "\n".join([f"\t{z}" for z in ss])
             s += "\n" + ss
         return s
+
+    @staticmethod
+    def validate(root: "DepTree"):
+        """ Assert the shape of the tree
+        """
+        if root.is_leaf():
+            assert root.is_word()
+            return True
+        assert root.is_dep()
+        for i, c in enumerate(root.children):
+            if i == 0: 
+                assert isinstance(c, DepTree) and c.is_leaf() and c.is_word()
+            else: 
+                DepTree.validate(c)
+        return True
