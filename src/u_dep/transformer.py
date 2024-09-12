@@ -14,21 +14,31 @@ def build_deptree_from_spacy(node: Token):
         deptree.add_child(build_deptree_from_spacy(c))
     return deptree
 
-def _merge_compounds(root: DepTree) -> DepTree: 
+def _merge_rtl(root: DepTree, dep:str) -> DepTree: 
+    applicable = ["compound", "quantmod"]
+    assert dep in applicable
     if root.is_leaf():
         return root.copy_node_data()
     fresh_root = root.copy_node_data()
     for i, c in enumerate(root.children):
         c: DepTree
-        if c.label() == "compound":
-            fresh_root.set_child(0, DepTree(c.nth_child(0).label() + "_" + fresh_root.nth_child(0).label(), is_word=True))
-            assert c.num_children() == 1 # this works under the assumption that all compound is d
-                                        # directly connected to rootw and without children except its word
+        if c.label() == dep:
+            child0: DepTree = fresh_root.nth_child(0)
+            x = _merge_rtl(c, dep)
+            fresh_root.set_child(0, DepTree(
+                label=x.nth_child(0).label() + "_" + child0.label(), 
+                is_word=True
+            ))
+            for j in range(1, x.num_children()):
+                fresh_root.add_child(x.nth_child(j))
         else: 
-            fresh_root.add_child(_merge_compounds(c))
+            fresh_root.add_child(_merge_rtl(c, dep))
     return fresh_root
 
 def _merge_ltr(root: DepTree, dep: str) -> DepTree: 
+    """Effectively concatenate all dependents to the dep_head recursively (descendents, then siblings)
+    NOTE: might have trouble with hierarchy of concatenation, but 'll see
+    """
     applicable = ["xcomp", "prt"]
     assert dep in applicable
     if root.is_leaf():
@@ -146,11 +156,13 @@ class Transformer:
             s += "\n" + ss 
         return s
 
-    def preprocess(self, root: DepTree) -> None: 
+    def preprocess(self, root: DepTree) -> DepTree: 
         """ Preprocess dependency tree to make lambda composition easier
-            NOTE: this mutates the tree
         """
-        root = _merge_compounds(root)
-        root = _merge_ltr(root, "xcomp")
-        root = _merge_ltr(root, "prt")
+        rtl_order = ["compound", "quantmod"]
+        ltr_order = ["prt", "xcomp"]
+        for dep in rtl_order: 
+            root = _merge_rtl(root, dep)
+        for dep in ltr_order: 
+            root = _merge_ltr(root, dep)
         return root

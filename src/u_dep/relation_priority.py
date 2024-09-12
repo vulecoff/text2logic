@@ -13,6 +13,9 @@ relation_priority = {
     "prt": 10,
     "pcomp": 10, 
 
+    "xcomp": 20, 
+    "pcomp": 20,
+
     "attr": 30, 
     "prep": 30, 
     "det": 30, 

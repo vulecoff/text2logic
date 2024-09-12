@@ -104,6 +104,7 @@ def _args(expr: Abstr) -> Abstr:
         for j in range(len(args)): 
             if i < j and args[i] == None and args[j] != None:
                 raise Exception(f"Found {_idx_to_arg(j)} but not {_idx_to_arg(i)} for root {root}")
+                # TODO: allows for anonymous entities
     
     new_root = root
     for n in args: 
@@ -121,31 +122,6 @@ def _args(expr: Abstr) -> Abstr:
         expr.parameters,
         AndOpr(*postprocessed)
     )
-
-
-# def _combine_advmod(expr: Abstr) -> Abstr: 
-#     dep = "advmod"
-#     assert isinstance(expr.body, AndOpr)
-#     targ_pred: Apply = _find_expr(expr.body.operands, 
-#                            lambda x: isinstance(x, Apply) and isinstance(x.functor, Const) and x.functor.symbol == dep
-#                            )
-#     if targ_pred == None:
-#         raise Exception(f"No \'{dep}\' predicate matched in expr {expr}")
-#     root_word: Apply = _find_expr(expr.body.operands,
-#                 lambda x: isinstance(x, Apply) and isinstance(x.functor, Const) and x.arguments[1] == targ_pred.arguments[1]
-#                            )
-#     if root_word == None: 
-#         raise Exception(f"No root word found for relation {dep} in expr {expr}")
-#     all_targ_preds: List[Apply] = _find_expr_all(expr.body.operands, 
-#                 lambda x: isinstance(x, Apply) and isinstance(x.functor, Const) and \
-#                 x.functor.symbol == dep and  x.arguments[1] == root_word.arguments[1]
-#                         )
-#     assert len(all_targ_preds) == 1 # NOTE: assume that there is only one advmod connected to the root
-#     targ_words_pred = [_find_expr(expr.body.operands, \
-#                             lambda x: isinstance(x, Apply) and isinstance(x.functor, Const) \
-#                                     and 
-#                             )   \
-#                        for e in all_targ_preds]
     
 
 class PostProcessor:

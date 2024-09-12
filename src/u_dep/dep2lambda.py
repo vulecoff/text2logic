@@ -61,12 +61,12 @@ n2l_common_dict = {
     "pobj": _copy("pobj"),
     "poss": _copy("belongs"),
     "ccomp": _copy("ccomp"),
-    # "xcomp": _copy("xcomp"), NOTE: preprocessed
-    # "prt": _copy("prt"), NOTE: preprocessed
+    "xcomp": _copy("xcomp"), # NOTE: preprocessed
+    "prt": _copy("prt"), # NOTE: preprocessed
     "npadvmod": _copy("npadvmod"),
 
     "conj": _coord("conj"),
-    # "compound": _copy("compound"), NOTE: preprocessed
+    "compound": _copy("compound"), # NOTE: preprocessed
     "advmod": _coord("advmod"),
 
     "acl": _invert("acl"),

@@ -35,6 +35,10 @@ def parse(text: str, with_show=False):
     doc = nlp(text)
     sents = list(doc.sents)
 
+    print_section("Token Description")
+    for token in doc: 
+        print(token.text, token.dep_, token.pos_, token.ent_type_)
+    print()
     # for now parsing single sentence
     assert len(sents) == 1
     root = sents[0].root
@@ -45,13 +49,14 @@ def parse(text: str, with_show=False):
 
     deptree = build_deptree_from_spacy(root)
     DepTree.validate(deptree)
+    print_section("Original DepTree")
+    print(tf.tree_repr_with_priority(deptree))
+    print()
+    
     preprocesed_dt = tf.preprocess(deptree)
     DepTree.validate(preprocesed_dt)
     binarized = tf.binarize(preprocesed_dt)
 
-    print_section("Original DepTree")
-    print(tf.tree_repr_with_priority(deptree))
-    print()
     print_section("Preprocessed DepTree")
     print(tf.tree_repr_with_priority(preprocesed_dt))
     print()
