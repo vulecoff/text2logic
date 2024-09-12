@@ -1,43 +1,86 @@
 from .lambda_calculus.lambda_ast import Abstr
-from .lambda_calculus import lambda_processor
-
-from .u_dep.transformer import build_deptree_from_spacy
-
-
-import spacy
-
-nlp = spacy.load("en_core_web_sm")
-doc = nlp("Disney acquired Pixar.")
-
-root = list(doc.sents)[0].root
-dt = build_deptree_from_spacy(root)
-print(dt)
+from .lambda_calculus.lambda_processor import uniqueify_var_names
 
 from .u_dep.relation_priority import RelationPriority
 from .u_dep.dep2lambda import Dep2Lambda
-from .u_dep.transformer import Transformer
+from .u_dep.transformer import Transformer, build_deptree_from_spacy
 from .u_dep.dep_tree import DepTree
+from .u_dep.postprocessor import PostProcessor
+import argparse
 
-rp = RelationPriority()
-d2l = Dep2Lambda()
+import spacy
+from spacy import displacy
 
-tf = Transformer(rp, d2l)
+def print_section(txt): 
+    print("_" * 5 + txt + "_" *5)
 
-dep = tf.binarize(dt)
-print(dep)
-
-tf.assign_lambda(dep)
-
-full_lmbd = tf.build_lambda_tree(dep)
-lmbd = tf.compose_semantics(dep)
-
-def alphabet_incrementer(): 
+def numeric_incrementer_gen(): 
+    id = 0
+    while True:
+        id += 1
+        yield f"<{id}>"
+def alphabet_incrementer_gen():
     alphabet = [chr(ord('a') + i) for i in range(26)]
-    for z in alphabet: 
-        yield z
+    for x in alphabet: 
+        yield x
 
-print(full_lmbd)
-print(lmbd)
-from .lambda_calculus.lambda_processor import uniqueify_var_names
-l = uniqueify_var_names(lmbd, alphabet_incrementer())
-print(l)
+
+def parse(text: str, with_show=False):
+    # input in sentence --> tree, final lambda
+    """Pipeline: 
+        parse from spacy --> convert to internal repr --> preprocess
+        --> binarize + assign_lambda + compose_semantics --> postprocess
+    """
+    nlp = spacy.load("en_core_web_sm")
+    doc = nlp(text)
+    sents = list(doc.sents)
+
+    # for now parsing single sentence
+    assert len(sents) == 1
+    root = sents[0].root
+
+    rel_priority = RelationPriority()
+    d2lambda = Dep2Lambda()
+    tf = Transformer(relation_priority=rel_priority, dep2lambda=d2lambda)
+
+    deptree = build_deptree_from_spacy(root)
+    DepTree.validate(deptree)
+    preprocesed_dt = tf.preprocess(deptree)
+    DepTree.validate(preprocesed_dt)
+    binarized = tf.binarize(preprocesed_dt)
+
+    print_section("Original DepTree")
+    print(tf.tree_repr_with_priority(deptree))
+    print()
+    print_section("Preprocessed DepTree")
+    print(tf.tree_repr_with_priority(preprocesed_dt))
+    print()
+    print("Binarized DepTree")
+    print(tf.tree_repr_with_priority(binarized))
+    
+    print("\n")
+    tf.assign_lambda(binarized)
+    result = tf.compose_semantics(binarized)
+    result = uniqueify_var_names(result, alphabet_incrementer_gen())
+    print_section("Final Lambda")
+    print(result)
+    print()
+
+    postprocessor = PostProcessor()
+    result = postprocessor.process(result)
+    print_section("Post-processed Lambda")
+    print(result)    
+
+    if with_show: 
+        displacy.serve(doc)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Parse sentence to lambda, for now")
+    parser.add_argument("text", type=str, 
+                        help="Text to parse")
+    parser.add_argument("--show", "-s", action="store_true",
+                        help="Show dep graph with displaCy", dest="show")
+    # TODO: file to input/output
+
+    args = parser.parse_args()
+    parse(args.text, args.show)
