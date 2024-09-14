@@ -38,7 +38,7 @@ class Abstr(LambdaExpr):
     Syntatic-sugar multi-parameters lambda
     Lxyz. xyz
     """
-    def __init__(self, parameters: list, body):
+    def __init__(self, parameters: List[Var], body):
         if not isinstance(parameters, list):
             raise Exception("Abstraction's parameters are expected to be a list.")
         if len(parameters) == 0:
@@ -46,9 +46,9 @@ class Abstr(LambdaExpr):
         self.parameters = parameters
         self.body = body
     def __str__(self) -> str:
-        return "(L{}. {})".format("".join(list(map(str, self.parameters))), str(self.body))
+        return "L{}.{}".format("".join(list(map(str, self.parameters))), str(self.body))
     def __repr__(self) -> str:
-        return "(L{}. {})".format("".join(list(map(repr, self.parameters))), repr(self.body))
+        return "(L{}.{})".format("".join(list(map(repr, self.parameters))), repr(self.body))
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Abstr):
             is_eq = True
@@ -101,6 +101,13 @@ class Apply(LambdaExpr):
             return True
         return False
 
+
+"""
+TODO: stricter typing for logical operators.
+well-formed formula versus mere lambda expr; no static verification for now
+Reference: Lambda Logic
+"""
+
 class AndOpr(LambdaExpr):
     """
     And operator
@@ -113,7 +120,7 @@ class AndOpr(LambdaExpr):
     def __str__(self):
         return " & ".join(list(map(str, self.operands)))
     def __repr__(self):
-        return f"( {' & '.join(list(map(repr, self.operands))) } )"
+        return f"AND( {', '.join(list(map(repr, self.operands))) } )"
     def __eq__(self, other: object) -> bool:
         if isinstance(other, AndOpr):
             if len(self.operands) != len(other.operands): 
@@ -123,15 +130,74 @@ class AndOpr(LambdaExpr):
                     return False
             return True
         return False
-    
-    def flatten(self): 
-        return AndOpr(*self._flatten())
 
-    def _flatten(self) -> List[LambdaExpr]:
-        ret = []
-        for op in self.operands: 
-            if isinstance(op, AndOpr):
-                ret.extend(op._flatten())
-            else: 
-                ret.append(op)
-        return ret
+
+class ImpliesOpr(LambdaExpr): 
+    def __init__(self, lhs: LambdaExpr, rhs: LambdaExpr):
+        self.lhs = lhs
+        self.rhs = rhs
+
+        # self._implies_unicode = u'\u2192'
+        self._implies_unicode = "->"
+    def __str__(self) -> str:
+        return f"{str(self.lhs)} {self._implies_unicode} {str(self.rhs)}"
+    def __repr__(self) -> str:
+        return f"{repr(self.lhs)} {self._implies_unicode} {repr(self.rhs)}"
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, ImpliesOpr):
+            return self.lhs.__eq__(other.lhs) and self.rhs.__eq__(other.rhs)
+        return False
+    
+class Exists(LambdaExpr): 
+    def __init__(self, vars: List[Var], formula: LambdaExpr):
+        self.vars = vars
+        self.formula = formula 
+        # self._exists_unicode = u'\u2203'
+        self._exists_unicode = "?"
+    
+    def __str__(self) -> str:
+        return f"{self._exists_unicode}{''.join(list(map(str, self.vars)))}.{str(self.formula)}"
+    
+    def __repr__(self) -> str:
+        return f"{self._exists_unicode}{''.join(list(map(repr, self.vars)))}.{repr(self.formula)}"
+    
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Exists):
+            is_eq = True
+            if len(self.vars) != len(other.vars):
+                return False
+            for i in range(len(self.vars)):
+                is_eq = is_eq and self.vars[i].__eq__(other.vars[i])
+                if not is_eq:
+                    return False
+            return self.formula.__eq__(other.formula)
+        return False
+
+
+class ForAll(LambdaExpr): 
+    """
+    should have the same attributes as Exists
+    """
+    def __init__(self, vars: List[Var], formula: LambdaExpr):
+        self.vars = vars
+        self.formula = formula 
+        # self._forall_unicode = u'\u2200'
+        self._forall_unicode = "@"
+    
+    def __str__(self) -> str:
+        return f"{self._forall_unicode}{''.join(list(map(str, self.vars)))}.{str(self.formula)}"
+    
+    def __repr__(self) -> str:
+        return f"{self._forall_unicode}{''.join(list(map(repr, self.vars)))}.{repr(self.formula)}"
+    
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, ForAll):
+            is_eq = True
+            if len(self.vars) != len(other.vars):
+                return False
+            for i in range(len(self.vars)):
+                is_eq = is_eq and self.vars[i].__eq__(other.vars[i])
+                if not is_eq:
+                    return False
+            return self.formula.__eq__(other.formula)
+        return False

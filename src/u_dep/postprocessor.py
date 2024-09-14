@@ -1,4 +1,5 @@
-from ..lambda_calculus.lambda_ast import LambdaExpr, Abstr, Apply, AndOpr, Const, Var
+from ..lambda_calculus.lambda_ast import LambdaExpr, Abstr, Apply, AndOpr, Const, Var, Exists
+from ..lambda_calculus.lambda_processor import flatten, used_vars
 from typing import List, Callable
 
 def _find_expr(ls: List[LambdaExpr], condition: Callable[[LambdaExpr], bool]):
@@ -14,15 +15,14 @@ def _find_expr_all(ls: List[LambdaExpr], condition: Callable[[LambdaExpr], bool]
             ret.append(e)
     return ret
 
-def _conj(expr: Abstr) -> Abstr: 
+def _conj(ls: List[Apply]) -> List[Apply]: 
     """Transform exactly one pair
     """
-    assert isinstance(expr.body, AndOpr)
     
     target_old = []
     target_transformed = []
-    for op in expr.body.operands:
-        for op2 in expr.body.operands:
+    for op in ls:
+        for op2 in ls:
             op: Apply
             op2: Apply
             if op in target_old or op2 in target_old: 
@@ -36,34 +36,31 @@ def _conj(expr: Abstr) -> Abstr:
                     Apply(op2.functor, op2.arguments[0], op.arguments[1]),
                     Apply(op2.functor, op2.arguments[0], op.arguments[2])
                 ])
-                postprocessed = [op for op in expr.body.operands if op not in [op, op2]] + target_transformed
-                return Abstr(expr.parameters, AndOpr(*postprocessed))
-
+                postprocessed = [op for op in ls if op not in [op, op2]] + target_transformed
+                return postprocessed
     raise Exception("No matching predicates found for \'conj or arg\'")
 
-def _preposition(expr: Abstr) -> Abstr: 
-    assert isinstance(expr.body, AndOpr)
-    prep: Apply = _find_expr(expr.body.operands, 
+def _preposition(ls: List[Apply]) -> List[Apply]: 
+    prep: Apply = _find_expr(ls, 
                       lambda x: isinstance(x, Apply) and isinstance(x.functor, Const) and x.functor.symbol == "prep"
                       )
-    pobj: Apply = _find_expr(expr.body.operands, 
+    pobj: Apply = _find_expr(ls, 
                       lambda x: isinstance(x, Apply) and isinstance(x.functor, Const) and x.functor.symbol == "pobj"
                       )
-    prep_word: Apply = _find_expr(expr.body.operands,
+    prep_word: Apply = _find_expr(ls,
                         lambda x: isinstance(x, Apply) and isinstance(x.functor, Const) and x.arguments[0] == prep.arguments[1]
                         )
     if prep == None or pobj == None or prep_word == None: 
         raise Exception(f"Cannot match \'prep, pboj, or prep_word\' in {expr}")
     
-    new_body_operands = [op for op in expr.body.operands if op not in [prep, pobj, prep_word]]
-    new_body_operands.append(Apply(
+    ret = [op for op in ls if op not in [prep, pobj, prep_word]]
+    ret.append(Apply(
         Const("prep." + prep_word.functor.symbol), 
         prep.arguments[0], 
         pobj.arguments[1]))
-    return Abstr(expr.parameters, AndOpr(*new_body_operands))
+    return ret
 
-def _args(expr: Abstr) -> Abstr:
-    assert isinstance(expr.body, AndOpr)
+def _args(ls: List[Apply]) -> List[Apply]:
     # TODO: these two needs to be formalized
     def _arg_idx(s: str):
         if s == "arg1": 
@@ -79,8 +76,8 @@ def _args(expr: Abstr) -> Abstr:
     root = None
     root_idx = None
     args = [None, None, None]
-    for i, op in enumerate(expr.body.operands):
-        for op2 in expr.body.operands:
+    for i, op in enumerate(ls):
+        for op2 in ls:
             op: Apply
             op2: Apply
             if isinstance(op, Apply) and isinstance(op.functor, Const) \
@@ -115,13 +112,10 @@ def _args(expr: Abstr) -> Abstr:
             new_root.functor, 
             *[*new_root.arguments, n.arguments[1]]
         )
-    postprocessed = [op for op in expr.body.operands]
+    postprocessed = [op for op in ls]
     postprocessed[root_idx] = new_root
     postprocessed = [op for op in postprocessed if op not in args]
-    return Abstr(
-        expr.parameters,
-        AndOpr(*postprocessed)
-    )
+    return postprocessed
     
 
 class PostProcessor:
@@ -129,10 +123,10 @@ class PostProcessor:
         pass
 
     def process(self, expr: Abstr) -> Abstr:
+        expr = flatten(expr)
+        self.validate(expr)
+
         postproc_deps = ["conj", "preposition", "args"] # in order
-        expr = self.flatten_and_validate(expr)
-        if not isinstance(expr.body, AndOpr):
-            return expr
         for l in postproc_deps:
             while True: 
                 t = None
@@ -147,36 +141,58 @@ class PostProcessor:
                     break
         return expr
     
-    def process_by_dep(self, dep_label: str, expr: Abstr) -> Abstr:
+    def process_by_dep(self, dep_label: str, expr: LambdaExpr) -> Abstr: 
+        if isinstance(expr, Abstr):
+            return Abstr(expr.parameters, 
+                         self.process_by_dep(dep_label, expr.body)) 
+        elif isinstance(expr, Exists):
+            f = self.process_by_dep(dep_label, expr.formula)
+            in_use = [v for v in expr.vars if v.symbol in self._tmp_used_vars]
+            if len(in_use) == 0:
+                return f
+            return Exists(in_use, f)
+        elif isinstance(expr, AndOpr):
+            ret = AndOpr(*self._process_by_dep(dep_label, expr.operands))
+            self._tmp_used_vars = used_vars(ret)
+            return ret
+        
+        raise Exception("Unexpected expression structure.")
+    def _process_by_dep(self, dep_label: str, ls: List[Apply]) -> List[LambdaExpr]:
         def case(l: str):
             return dep_label == l
         
         if case("conj"): 
-            return _conj(expr)
+            return _conj(ls)
         elif case("preposition"):
-            return _preposition(expr)
+            return _preposition(ls)
         elif case("args"): 
-            return _args(expr)
+            return _args(ls)
         
         raise Exception("No post-processing step defined for depedency relation {}".format(dep_label))
     
-    """TODO: separate flatten and validate
+    """TODO: Ugly code
     """
-    def flatten_and_validate(self, expr: LambdaExpr): 
-        """Shape of the result lambda expression: 
-            Le. F(x) & F1(y) & ... 
+    def validate(self, expr: LambdaExpr): 
+        """
+        assert the shape of result expr that postprocessing steps
+        Shape of the result lambda expression: 
+            Le. ?xyz F(x) & F1(y) & ... 
             a Lambda with one parameter, f-predicates are all grounded
         """
         assert isinstance(expr, Abstr)
         assert len(expr.parameters) == 1
-        assert isinstance(expr.body, AndOpr) or isinstance(expr.body, Apply)
-        if not isinstance(expr.body, AndOpr):
-            return expr
-        expr = Abstr(expr.parameters, expr.body.flatten())
-        for b in expr.body.operands: 
+        if isinstance(expr.body, Apply):
+            return
+        assert isinstance(expr.body, AndOpr) or \
+            isinstance(expr.body, Exists)
+        
+        expr = expr.body
+        while isinstance(expr, Exists):
+            expr = expr.formula
+        assert isinstance(expr, AndOpr)
+        for b in expr.operands: 
             assert isinstance(b, Apply)
             assert isinstance(b.functor, Const)
             for arg in b.arguments:
                 assert isinstance(arg, Var)
-        return expr
         

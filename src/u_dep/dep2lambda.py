@@ -1,4 +1,4 @@
-from ..lambda_calculus.lambda_ast import Abstr, Var, AndOpr, Apply, Const
+from ..lambda_calculus.lambda_ast import Abstr, Var, AndOpr, Apply, Const, ImpliesOpr, Exists, ForAll
 from .dep_tree import DepTree
 from warnings import warn
 
@@ -8,27 +8,29 @@ def _word(word: str):
 def _copy(rel: str): 
     return Abstr(
         [Var('f'), Var('g'), Var('z')],
-        AndOpr(
+        Exists([Var('x')], AndOpr(
             Apply(Var('f'), Var('z')),
             Apply(Var('g'), Var('x')), 
             Apply(Const(rel), Var('z'), Var('x'))
-        )
+        ))
     )
 def _invert(rel: str):
     return Abstr(
         [Var('f'), Var('g'), Var('z')],
-        AndOpr(
+        Exists([Var('x')], AndOpr(
             Apply(Var('f'), Var('z')),
             Apply(Var('g'), Var('x')), 
             Apply(Const(rel), Var('x'), Var('z'))
-        )
+        ))
     )
 def _coord(rel: str):
     return Abstr(
             [Var('f'), Var('g'), Var('z')],
-            AndOpr(
-                Apply(Var('f'), Var('x')), Apply(Var('g'), Var('y')), Apply(Const(rel), Var('z'), Var('x'), Var('y'))
-            )
+            Exists( [Var('x'), Var('y')], AndOpr(
+                Apply(Var('f'), Var('x')), 
+                Apply(Var('g'), Var('y')), 
+                Apply(Const(rel), Var('z'), Var('x'), Var('y'))
+            ))
         )
 def _merge():
     return Abstr(
