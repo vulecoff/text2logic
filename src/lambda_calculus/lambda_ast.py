@@ -3,11 +3,42 @@ Abstract Syntax Definition for Lambda Calculus
 """
 from copy import deepcopy
 from typing import Tuple, List
+from termcolor import colored
 
 class LambdaExpr:
     """Abstract class for Lambda Expression"""
     def __init__(self):
         pass 
+
+    @staticmethod
+    def colored_repr(expr: "LambdaExpr"): 
+        # order inside out
+        colors = ["red", "magenta", "blue", "cyan", "green", "yellow"]
+        cur_nested_lvl = -1
+        max_nested_lvl= -1
+        s = repr(expr)
+        nested_lvls = [-1 for i in range(len(s))]
+        ret = []
+        for i, c in enumerate(s):
+            if c == "(":
+                cur_nested_lvl += 1
+                nested_lvls[i] = cur_nested_lvl
+            elif c == ")": 
+                nested_lvls[i] = cur_nested_lvl
+                cur_nested_lvl -= 1
+            max_nested_lvl = max(cur_nested_lvl, max_nested_lvl) 
+        
+        for i, c in enumerate(s):
+            if c in "()":
+                l = max_nested_lvl - nested_lvls[i]
+                _c = c
+                if l < len(colors):
+                    _c = colored(c, colors[l])
+                ret.append(_c)
+            else: 
+                ret.append(c)
+        return "".join(ret)
+                
 
 class Var(LambdaExpr):
     def __init__(self, symbol: str):

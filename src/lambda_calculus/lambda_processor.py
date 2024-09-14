@@ -244,7 +244,7 @@ def beta_reduce(expr: LambdaExpr, max_iter=100, show_step=False):
     while not normal_form: 
         leftmost_outermost_reduced = [False]
         if show_step: 
-            print(f"Step {cur_iter}: {repr(cur)}")
+            print(f"Step {cur_iter}: {LambdaExpr.colored_repr(cur)}")
         nxt = _beta_reduce_step(cur, leftmost_outermost_reduced)
         cur_iter += 1
         normal_form = not leftmost_outermost_reduced[0] # if still reducible, continue another try
