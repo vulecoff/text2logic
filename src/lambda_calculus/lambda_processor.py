@@ -1,7 +1,7 @@
 """
 Functions to process and evaluate Lambda Expressions
 """
-from .lambda_ast import LambdaExpr, Var, Const, AndOpr, Abstr, Apply, ImpliesOpr, Exists, ForAll
+from .lambda_ast import LambdaExpr, Var, Const, AndOpr, Abstr, Apply, ImpliesOpr, Exists, ForAll, Neg
 from copy import deepcopy
 from typing import Union, List
 
@@ -31,6 +31,8 @@ def free_vars(expr: LambdaExpr):
         return free_vars(expr.formula) - set(list(map(str, expr.vars)))
     elif isinstance(expr, ImpliesOpr): 
         return free_vars(expr.lhs) | free_vars(expr.rhs)
+    elif isinstance(expr, Neg): 
+        return free_vars(expr.formula)
     
     raise Exception(invalid_expr_msg.format(type(expr), expr))
     return None
@@ -44,19 +46,21 @@ def bound_vars(expr: LambdaExpr):
     elif isinstance(expr, AndOpr):
         res = set()
         for o in expr.operands:
-            res = res | free_vars(o)
+            res = res | bound_vars(o)
         return res
     elif isinstance(expr, Abstr):
-        return free_vars(expr.body) | set(list(map(str, expr.parameters)))
+        return bound_vars(expr.body) | set(list(map(str, expr.parameters)))
     elif isinstance(expr, Apply):
-        res = free_vars(expr.functor)
+        res = bound_vars(expr.functor)
         for a in expr.arguments:
-            res = res | free_vars(a)
+            res = res | bound_vars(a)
         return res
     elif isinstance(expr, ForAll) or isinstance(expr, Exists):
-        return free_vars(expr.formula) | set(list(map(str, expr.vars)))
+        return bound_vars(expr.formula) | set(list(map(str, expr.vars)))
     elif isinstance(expr, ImpliesOpr): 
-        return free_vars(expr.lhs) | free_vars(expr.rhs)
+        return bound_vars(expr.lhs) | bound_vars(expr.rhs)
+    elif isinstance(expr, Neg):
+        return bound_vars(expr.formula)
     
     raise Exception(invalid_expr_msg.format(type(expr), expr))
     return None
@@ -86,6 +90,8 @@ def used_vars(expr: LambdaExpr):
         return used_vars(expr.formula)
     elif isinstance(expr, ImpliesOpr): 
         return used_vars(expr.lhs) | used_vars(expr.rhs)
+    elif isinstance(expr, Neg):
+        return used_vars(expr.formula)
     
     raise Exception(invalid_expr_msg.format(type(expr), expr))
     return None
@@ -128,6 +134,8 @@ def alpha_reduce(expr: LambdaExpr, to_replace: str, replacement: str) -> Union[A
                 _alpha_reduce(expr.lhs, to_replace, replacement),
                 _alpha_reduce(expr.rhs, to_replace, replacement)
             )
+        elif isinstance(expr, Neg):
+            return Neg(_alpha_reduce(expr.formula, to_replace, replacement))
         
         raise Exception(invalid_expr_msg.format(type(expr), expr))
         return None
@@ -198,6 +206,10 @@ def _substitute(expr: LambdaExpr, to_replace: str, arg: LambdaExpr):
             _substitute(expr.lhs, to_replace, arg),
             _substitute(expr.rhs, to_replace, arg)
         )
+    elif isinstance(expr, Neg):
+        return Neg(
+            _substitute(expr.formula, to_replace, arg)
+        )
     
     raise Exception(invalid_expr_msg.format(type(expr), expr))
     return None
@@ -234,6 +246,8 @@ def beta_reduce(expr: LambdaExpr, max_iter=100, show_step=False):
         elif isinstance(expr, Exists) or isinstance(expr, ForAll):
             cls = Exists if isinstance(expr, Exists) else ForAll
             return cls(deepcopy(expr.vars), _beta_reduce_step(expr.formula, leftmost_outermost_reduced))
+        elif isinstance(expr, Neg):
+            return Neg(_beta_reduce_step(expr.formula, leftmost_outermost_reduced))
         
         raise Exception(invalid_expr_msg.format(type(expr), expr))
         return None
@@ -289,6 +303,8 @@ def uniqueify_var_names(expr: LambdaExpr, id_incrementer: Generator[str, None, N
                 [_uniqueify_var_names(v, vars_mp) for v in expr.vars],
                 _uniqueify_var_names(expr.formula, vars_mp)
             )
+        elif isinstance(expr, Neg):
+            return Neg(_uniqueify_var_names(expr.formula))
         
         raise Exception(invalid_expr_msg.format(type(expr), expr))
     
@@ -301,11 +317,11 @@ def assert_unique_vars(expr: LambdaExpr):
     """
     if isinstance(expr, Abstr):
         for a in expr.parameters: 
-            assert a.symbol not in used_vars(expr.body) or a.symbol in free_vars(expr.body)
+            assert a.symbol not in bound_vars(expr.body)
         assert_unique_vars(expr.body)
     elif isinstance(expr, ForAll) or isinstance(expr, Exists):
         for a in expr.vars: 
-            assert a.symbol not in used_vars(expr.formula) or a.symbol in free_vars(expr.formula)
+            assert a.symbol not in bound_vars(expr.formula)
         assert_unique_vars(expr.formula)
     elif isinstance(expr, Apply):
         assert_unique_vars(expr.functor)
@@ -319,6 +335,8 @@ def assert_unique_vars(expr: LambdaExpr):
         assert_unique_vars(expr.rhs)
     elif isinstance(expr, Const) or isinstance(expr, Var):
         return 
+    elif isinstance(expr, Neg):
+        assert_unique_vars(expr.formula)
     else: 
         raise Exception(invalid_expr_msg.format(type(expr), expr))
 
@@ -367,9 +385,10 @@ def _flatten(expr: LambdaExpr):
         if len(forall_q) > 0: 
             ret = ForAll(forall_q, ret)
         return ret
-
     elif isinstance(expr, Const) or isinstance(expr, Var):
         return expr
+    elif isinstance(expr, Neg):
+        return Neg(_flatten(expr.formula))
     
     raise Exception(invalid_expr_msg.format(type(expr), expr))
 

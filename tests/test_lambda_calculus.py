@@ -1,5 +1,5 @@
 import unittest
-from src.lambda_calculus.lambda_ast import Abstr, Var, AndOpr, Const, Apply, Exists, ImpliesOpr,ForAll
+from src.lambda_calculus.lambda_ast import Abstr, Var, AndOpr, Const, Apply, Exists, ImpliesOpr,ForAll, Neg
 from src.lambda_calculus.lambda_processor import beta_reduce, alpha_reduce, free_vars, flatten, bound_vars
 
 
@@ -110,6 +110,7 @@ class TestBetaReduce(unittest.TestCase):
         expected = Var('w')
         actual = beta_reduce(expr)
         self.assertEqual(actual, expected)
+
     def test_with_multiple_alpha_conversion(self):
         expr = Apply(
             Abstr([Var('x'), Var('y'), Var('z')], Apply(Var('x'), Var('y'), Var('z'))),
@@ -141,15 +142,23 @@ class TestBetaReduce(unittest.TestCase):
         false_expr = Abstr([Var('x'), Var('y')],Var('y'))
         actual = beta_reduce(Apply(and_expr, true_expr, false_expr))
         self.assertEqual(actual, false_expr)
+    
+    def test_neg(self):
+        expr = Apply(
+            Abstr([Var('f'), Var('x')], Neg(Apply(Var('f'), Var('x')))),
+            Abstr([Var('x')], Apply(Const("pred"), Var('x')))
+        )
+        expected = Abstr([Var('x')], Neg(Apply(Const('pred'), Var('x'))))
+        actual = beta_reduce(expr)
+        self.assertEqual(actual, expected)
 
 class TestFreeBoundVars(unittest.TestCase):
-    def test_1(self):
+    def test_free_vars(self):
         expr = Exists(
             [Var('x')], 
             Apply(Const("father"), Var('x'))
         )
         self.assertEqual(len(free_vars(expr)), 0)
-        self.assertTrue('x' in bound_vars(expr))
         expr = ForAll(
             [Var('x'), Var('y')], 
             Apply(Var('f'), Var('y'), Var('x'))
@@ -166,6 +175,12 @@ class TestFreeBoundVars(unittest.TestCase):
         )
         free = free_vars(expr)
         self.assertTrue(len(free) == 0)
+
+    def test_bound_vars(self):
+        expr = Abstr([Var('x')], Neg(Var('x')))
+        self.assertTrue('x' in bound_vars(expr))
+        self.assertTrue('x' not in bound_vars(expr.body))
+
 
 class TestFlatten(unittest.TestCase):
     def test_1(self):

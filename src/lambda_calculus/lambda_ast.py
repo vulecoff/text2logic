@@ -108,7 +108,7 @@ class Abstr(LambdaExpr):
 class Apply(LambdaExpr):
     """
     Represents an Application expression
-    (functor ..args)
+    (functor ..args) ~ (functor arg_1)arg2...
     """
     def __init__(self, functor, *arguments):
         self.functor = functor
@@ -230,5 +230,18 @@ class ForAll(LambdaExpr):
                 is_eq = is_eq and self.vars[i].__eq__(other.vars[i])
                 if not is_eq:
                     return False
+            return self.formula.__eq__(other.formula)
+        return False
+
+class Neg(LambdaExpr):
+    def __init__(self, formula: LambdaExpr):
+        self.formula = formula
+        self._neg_unicode = "-"
+    def __str__(self) -> str:
+        return f"{self._neg_unicode}{str(self.formula)}"
+    def __repr__(self) -> str:
+        return f"{self._neg_unicode}({repr(self.formula)})"
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Neg):
             return self.formula.__eq__(other.formula)
         return False
