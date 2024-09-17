@@ -5,59 +5,16 @@ from .dep2lambda import Dep2Lambda
 from ..lambda_calculus.lambda_ast import LambdaExpr, Apply
 
 from typing import Generator
+from .preprocesser import merge_ltr, merge_rtl, enrich_determiner
 
 from spacy.tokens.token import Token
 def build_deptree_from_spacy(node: Token):
     deptree = DepTree(node.dep_, is_word=False, is_dep=True)
-    deptree.add_child(DepTree(node.text,  is_word=True, is_dep=False))
+    child = DepTree(node.text,  is_word=True, is_dep=False, pos=node.pos_, ent_type=node.ent_type_)
+    deptree.add_child(child)
     for c in node.children:
         deptree.add_child(build_deptree_from_spacy(c))
     return deptree
-
-def _merge_rtl(root: DepTree, dep:str) -> DepTree: 
-    applicable = ["compound", "quantmod"]
-    assert dep in applicable
-    if root.is_leaf():
-        return root.copy_node_data()
-    fresh_root = root.copy_node_data()
-    for i, c in enumerate(root.children):
-        c: DepTree
-        if c.label() == dep:
-            child0: DepTree = fresh_root.nth_child(0)
-            x = _merge_rtl(c, dep)
-            fresh_root.set_child(0, DepTree(
-                label=x.nth_child(0).label() + "_" + child0.label(), 
-                is_word=True
-            ))
-            for j in range(1, x.num_children()):
-                fresh_root.add_child(x.nth_child(j))
-        else: 
-            fresh_root.add_child(_merge_rtl(c, dep))
-    return fresh_root
-
-def _merge_ltr(root: DepTree, dep: str) -> DepTree: 
-    """Effectively concatenate all dependents to the dep_head recursively (descendents, then siblings)
-    NOTE: might have trouble with hierarchy of concatenation, but 'll see
-    """
-    applicable = ["xcomp", "prt"]
-    assert dep in applicable
-    if root.is_leaf():
-        return root.copy_node_data()
-    fresh_root = root.copy_node_data()
-    for i, c in enumerate(root.children):
-        c: DepTree
-        if c.label() == dep:
-            child0: DepTree = fresh_root.nth_child(0)
-            x = _merge_ltr(c, dep)
-            fresh_root.set_child(0, DepTree(
-                label=child0.label() + "_" + x.nth_child(0).label(), 
-                is_word=True
-            ))
-            for j in range(1, x.num_children()):
-                fresh_root.add_child(x.nth_child(j))
-        else: 
-            fresh_root.add_child(_merge_ltr(c, dep))
-    return fresh_root
 
 class Transformer: 
     """Transformer for Dependency tree
@@ -88,7 +45,7 @@ class Transformer:
         sorted_children: list[DepTree] = sorted(root.children, key=self._compare)
         bin_tree: DepTree = None
         for c in sorted_children: 
-            temp = DepTree(c.label(), is_word=c.is_word(),is_dep=c.is_dep())
+            temp = c.copy_node_data()
             l = bin_tree # left
             r = self.binarize(c) # right
             if l != None: 
@@ -132,7 +89,7 @@ class Transformer:
             self.build_lambda_tree(root.nth_child(1))
         )
 
-    def compose_semantics(self, root: DepTree) -> LambdaExpr:
+    def compose_semantics(self, root: DepTree, show_step=False) -> LambdaExpr:
         """
         Compose semantics of dep tree using beta-reduction
         """
@@ -143,12 +100,12 @@ class Transformer:
             return e
         return beta_reduce(Apply(
             e, 
-            self.compose_semantics(root.nth_child(0)),
-            self.compose_semantics(root.nth_child(1))
-        ))
+            self.compose_semantics(root.nth_child(0), show_step),
+            self.compose_semantics(root.nth_child(1), show_step)
+        ), show_step=show_step)
     
     def tree_repr_with_priority(self, root: DepTree) -> str:
-        s = f"({root.prefixed_label()}, {self._compare(root)})"
+        s = f"({root.prefixed_label()}, {root.pos()}, {self._compare(root)})"
         for c in root.children:
             ss = self.tree_repr_with_priority(c)
             ss = ss.split('\n')
@@ -162,7 +119,8 @@ class Transformer:
         rtl_order = ["compound", "quantmod"]
         ltr_order = ["prt", "xcomp"]
         for dep in rtl_order: 
-            root = _merge_rtl(root, dep)
+            root = merge_rtl(root, dep)
         for dep in ltr_order: 
-            root = _merge_ltr(root, dep)
+            root = merge_ltr(root, dep)
+        root = enrich_determiner(root)
         return root

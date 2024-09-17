@@ -304,7 +304,7 @@ def uniqueify_var_names(expr: LambdaExpr, id_incrementer: Generator[str, None, N
                 _uniqueify_var_names(expr.formula, vars_mp)
             )
         elif isinstance(expr, Neg):
-            return Neg(_uniqueify_var_names(expr.formula))
+            return Neg(_uniqueify_var_names(expr.formula, vars_mp))
         
         raise Exception(invalid_expr_msg.format(type(expr), expr))
     
