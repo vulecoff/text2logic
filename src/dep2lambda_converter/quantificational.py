@@ -2,8 +2,11 @@ from ..lambda_calculus.lambda_ast import Abstr, Var, AndOpr, Apply, Const, Impli
 from ..u_dep.dep_tree import DepTree
 from warnings import warn
 
+
+# Implements UD version 2
+
 def is_entity(node: DepTree):
-    return node.pos() == "PROPN"
+    return node.pos() == "PROPN" or node.pos() == "PRON"
 def is_event(node: DepTree):
     return node.pos() == "VERB"
 

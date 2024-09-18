@@ -10,6 +10,7 @@ from .u_dep.dep_tree import DepTree
 from .u_dep.postprocessor import PostProcessor
 from .dep2lambda_converter.default import default_converter
 from .dep2lambda_converter.quantificational import quant_converter
+from .dep_priority.quantificational import quant_priority
 import argparse
 
 import spacy
@@ -41,7 +42,7 @@ def parse_with_quantifer(text: str, with_show=False):
     assert len(sents) == 1
     root = sents[0].root
 
-    rel_priority = RelationPriority()
+    rel_priority = RelationPriority(priority_dt=quant_priority)
     converter = quant_converter
     d2lambda = Dep2Lambda(converter=converter)
     tf = Transformer(relation_priority=rel_priority, dep2lambda=d2lambda)
