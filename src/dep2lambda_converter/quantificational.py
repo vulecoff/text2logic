@@ -5,22 +5,18 @@ from warnings import warn
 
 # Implements UD version 2
 
-def is_entity(node: DepTree):
-    return node.pos() == "PROPN" or node.pos() == "PRON"
-def is_event(node: DepTree):
-    return node.pos() == "VERB"
 
 def quant_converter(node: DepTree):
     def case(label: str):
         return node.label() == label
     if node.is_word():
-        if is_event(node):
+        if node.is_event():
             return Abstr(
                 [Var('f')], 
                 Exists([Var('e')], 
                        AndOpr(Apply(Const(node.label()), Var('e')), Apply(Var('f'), Var('e'))))
             )
-        elif is_entity(node):
+        elif node.is_individual():
             return Abstr([Var('f')], Apply(Var('f'), Const(node.label())))
         return Abstr(
             [Var('x')],
@@ -47,7 +43,7 @@ def quant_converter(node: DepTree):
                         ))
                     ))
                 ))
-    elif case("dobj"):
+    elif case("obj"):
         return Abstr([Var('P'), Var('Q'), Var('f')], Apply(
                     Var('Q'), Abstr([Var('x')], Apply(
                         Var('P'), Abstr([Var('e')], AndOpr(
@@ -69,7 +65,7 @@ def quant_converter(node: DepTree):
             Apply(Var('P'), Var('f')), 
             Apply(Var('Q'), Var('f'))
         ))
-    elif case("aux") or case("cc"):
+    elif case("aux") or case("cc") or case('cop'):
         # identity
         return Abstr([Var('P'), Var('Q')], Var('P'))
     raise Exception("Unimplemented dependency \'{}\'".format(node.label()))

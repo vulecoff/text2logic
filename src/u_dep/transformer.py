@@ -5,7 +5,7 @@ from .dep2lambda import Dep2Lambda
 from ..lambda_calculus.lambda_ast import LambdaExpr, Apply
 
 from typing import Generator
-from .preprocesser import merge_ltr, merge_rtl, enrich_determiner
+from .preprocesser import merge_ltr, merge_rtl, enrich_determiner, assign_ontology
 
 class Transformer: 
     """Transformer for Dependency tree
@@ -117,4 +117,5 @@ class Transformer:
     
     def preprocess_quantifier(self, root: DepTree) -> DepTree:
         root = enrich_determiner(root)
+        assign_ontology(root)
         return root

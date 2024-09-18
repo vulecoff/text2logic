@@ -3,7 +3,7 @@
 quant_priority = {
     "ROOT": -1, 
 
-    "dobj": 10, 
+    "obj": 10, 
     "pobj": 10, 
     "aux": 10, 
 

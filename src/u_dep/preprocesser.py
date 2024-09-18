@@ -68,3 +68,18 @@ def enrich_determiner(root: DepTree) -> DepTree:
     for c in root.children:
         r.add_child(enrich_determiner(c))
     return r
+
+from .dep_tree import Ontology
+def assign_ontology(root: DepTree): 
+    if root.is_leaf():
+        is_copula = next((x for x in root.parent.children if x.label() == "cop"), None)
+        if root.pos() == "PROPN" or root.pos() == "PRON":
+            root._ontology = Ontology.INDIVIDUAL
+        elif root.pos() == "VERB" or is_copula != None:
+            root._ontology = Ontology.EVENT
+        else: 
+            root._ontology = Ontology.NA
+        return 
+    root._ontology = Ontology.NA
+    for c in root.children: 
+        assign_ontology(c)

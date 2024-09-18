@@ -38,6 +38,13 @@ class Tree:
     
 WORD_PREFIX = "w-"
 DEP_PREFIX = "l-"
+
+from enum import Enum
+class Ontology(Enum):
+    NA = 0 # not applicable
+    EVENT = 1
+    INDIVIDUAL = 2
+
 class DepTree(Tree):
     """
     For now, keep track of label, word/dependencies, and associated lambda expr
@@ -59,6 +66,7 @@ class DepTree(Tree):
         self._pos = pos 
         self._ent_type = ent_type
         
+        self._ontology = None
         self._lambda_expr = None
     
     def is_word(self) -> bool:
@@ -96,6 +104,8 @@ class DepTree(Tree):
         )
         if self._lambda_expr != None:
             dt.set_lambda_expr(self._lambda_expr)
+        if self._ontology != None:
+            dt._ontology = self._ontology
         return dt
     
     def __repr__(self) -> str:
@@ -121,3 +131,12 @@ class DepTree(Tree):
                 assert isinstance(c, DepTree) and c.is_leaf() and c.is_word()
             DepTree.validate(c)
         return True
+    
+    def is_event(self):
+        if self._ontology == None: 
+            raise Exception("Node's ontology has not been assigned")
+        return self._ontology == Ontology.EVENT
+    def is_individual(self):
+        if self._ontology == None: 
+            raise Exception("Node's ontology has not been assigned")
+        return self._ontology == Ontology.INDIVIDUAL
