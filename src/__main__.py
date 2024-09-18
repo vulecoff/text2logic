@@ -1,9 +1,11 @@
-from .lambda_calculus.lambda_ast import Abstr, LambdaExpr
-from .lambda_calculus.lambda_processor import uniqueify_var_names, flatten
+from .lambda_calculus.lambda_ast import Abstr, LambdaExpr, Apply, Var
+from .lambda_calculus.lambda_processor import uniqueify_var_names, flatten, beta_reduce
+from .lambda_calculus.utils import *
 
 from .u_dep.relation_priority import RelationPriority
 from .u_dep.dep2lambda import Dep2Lambda
-from .u_dep.transformer import Transformer, build_deptree_from_spacy
+from .u_dep.transformer import Transformer
+from .pipeline_utils import build_deptree_from_spacy
 from .u_dep.dep_tree import DepTree
 from .u_dep.postprocessor import PostProcessor
 from .dep2lambda_converter.default import default_converter
@@ -50,7 +52,7 @@ def parse_with_quantifer(text: str, with_show=False):
     print(tf.tree_repr_with_priority(deptree))
     print()
     
-    preprocesed_dt = tf.preprocess(deptree)
+    preprocesed_dt = tf.preprocess_quantifier(deptree)
     DepTree.validate(preprocesed_dt)
     binarized = tf.binarize(preprocesed_dt)
 
@@ -64,6 +66,10 @@ def parse_with_quantifer(text: str, with_show=False):
     tf.assign_lambda(binarized)
     result = tf.compose_semantics(binarized)
     result = uniqueify_var_names(result, alphabet_incrementer_gen())
+    result = beta_reduce(Apply( # existential closure
+        result, 
+        Abstr([Var('e')], TRUE)
+    ))
     result = flatten(result)
     print_section("Final Lambda")
     print(LambdaExpr.colored_repr(result))

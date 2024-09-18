@@ -7,15 +7,6 @@ from ..lambda_calculus.lambda_ast import LambdaExpr, Apply
 from typing import Generator
 from .preprocesser import merge_ltr, merge_rtl, enrich_determiner
 
-from spacy.tokens.token import Token
-def build_deptree_from_spacy(node: Token):
-    deptree = DepTree(node.dep_, is_word=False, is_dep=True)
-    child = DepTree(node.text,  is_word=True, is_dep=False, pos=node.pos_, ent_type=node.ent_type_)
-    deptree.add_child(child)
-    for c in node.children:
-        deptree.add_child(build_deptree_from_spacy(c))
-    return deptree
-
 class Transformer: 
     """Transformer for Dependency tree
     """
@@ -122,5 +113,8 @@ class Transformer:
             root = merge_rtl(root, dep)
         for dep in ltr_order: 
             root = merge_ltr(root, dep)
+        return root
+    
+    def preprocess_quantifier(self, root: DepTree) -> DepTree:
         root = enrich_determiner(root)
         return root

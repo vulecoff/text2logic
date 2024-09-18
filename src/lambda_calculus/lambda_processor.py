@@ -2,6 +2,7 @@
 Functions to process and evaluate Lambda Expressions
 """
 from .lambda_ast import LambdaExpr, Var, Const, AndOpr, Abstr, Apply, ImpliesOpr, Exists, ForAll, Neg
+from .utils import *
 from copy import deepcopy
 from typing import Union, List
 
@@ -346,6 +347,9 @@ def _flatten_AND(expr: AndOpr) -> list:
     for op in expr.operands: 
         if isinstance(op, AndOpr):
             ret.extend(_flatten_AND(op))
+        elif op == TRUE: 
+            # TODO: separate this into evaluation of AndOpr
+            continue
         else: 
             ret.append(op)
     return ret

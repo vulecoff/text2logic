@@ -38,20 +38,20 @@ def quant_converter(node: DepTree):
         ))
     elif case("nsubj"):
         return Abstr([Var('P'), Var('Q'), Var('f')], Apply(
-    Var('Q'), Abstr([Var('x')], Apply(
-        Var('P'), Abstr([Var('e')], AndOpr(
-            Apply(Var('f'), Var('e')), Apply(Const('ag'), Var('e'), Var('x'))
-        ))
-    ))
-))
+                    Var('Q'), Abstr([Var('x')], Apply(
+                        Var('P'), Abstr([Var('e')], AndOpr(
+                            Apply(Var('f'), Var('e')), Apply(Const('ag'), Var('e'), Var('x'))
+                        ))
+                    ))
+                ))
     elif case("dobj"):
         return Abstr([Var('P'), Var('Q'), Var('f')], Apply(
-            Var('Q'), Abstr([Var('x')], Apply(
-                Var('P'), Abstr([Var('e')], AndOpr(
-                    Apply(Var('f'), Var('e')), Apply(Const('th'), Var('e'), Var('x'))
+                    Var('Q'), Abstr([Var('x')], Apply(
+                        Var('P'), Abstr([Var('e')], AndOpr(
+                            Apply(Var('f'), Var('e')), Apply(Const('th'), Var('e'), Var('x'))
+                        ))
+                    ))
                 ))
-            ))
-        ))
     elif case("neg"):
         return Abstr([Var('P'), Var('_'), Var('f')], Neg(Apply(Var('P'), Var('f'))))
     elif case("advmod"):
@@ -61,7 +61,12 @@ def quant_converter(node: DepTree):
                 Apply(Var('f'), Var('e'))
             ))
         ))
-    elif case("aux"):
+    elif case("conj"):
+        return Abstr([Var('P'), Var('Q'), Var('f')], AndOpr(
+            Apply(Var('P'), Var('f')), 
+            Apply(Var('Q'), Var('f'))
+        ))
+    elif case("aux") or case("cc"):
         # identity
         return Abstr([Var('P'), Var('Q')], Var('P'))
     raise Exception("Unimplemented dependency \'{}\'".format(node.label()))

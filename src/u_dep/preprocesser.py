@@ -2,7 +2,7 @@ from .dep_tree import DepTree
 
 # TODO: copy data node with pos? 
 def merge_rtl(root: DepTree, dep:str) -> DepTree: 
-    return root
+    # return root
     applicable = ["compound", "quantmod"]
     assert dep in applicable
     if root.is_leaf():
@@ -16,8 +16,8 @@ def merge_rtl(root: DepTree, dep:str) -> DepTree:
             fresh_root.set_child(0, DepTree( 
                 label=x.nth_child(0).label() + "_" + child0.label(), 
                 is_word=True, 
-                pos=x.pos(), 
-                ent_type=x.ent_type()
+                pos=child0.pos(), 
+                ent_type=child0.ent_type()
             ))
             for j in range(1, x.num_children()):
                 fresh_root.add_child(x.nth_child(j))
@@ -26,7 +26,7 @@ def merge_rtl(root: DepTree, dep:str) -> DepTree:
     return fresh_root
 
 def merge_ltr(root: DepTree, dep: str) -> DepTree: 
-    return root
+    # return root
 
     """Effectively concatenate all dependents to the dep_head recursively (descendents, then siblings)
     NOTE: might have trouble with hierarchy of concatenation, but 'll see
@@ -43,7 +43,9 @@ def merge_ltr(root: DepTree, dep: str) -> DepTree:
             x = merge_ltr(c, dep)
             fresh_root.set_child(0, DepTree(
                 label=child0.label() + "_" + x.nth_child(0).label(), 
-                is_word=True
+                is_word=True,
+                pos=child0.pos(), 
+                ent_type=child0.ent_type()
             ))
             for j in range(1, x.num_children()):
                 fresh_root.add_child(x.nth_child(j))

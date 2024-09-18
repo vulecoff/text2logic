@@ -1,6 +1,7 @@
 import unittest
 from src.u_dep.dep_tree import DepTree, DEP_PREFIX, WORD_PREFIX
-from src.u_dep.transformer import Transformer, build_deptree_from_spacy
+from src.u_dep.transformer import Transformer
+from src.pipeline_utils import build_deptree_from_spacy
 import spacy
 
 class TestTransformer(unittest.TestCase):
