@@ -14,22 +14,26 @@ class LambdaExpr:
     def colored_repr(expr: "LambdaExpr"): 
         # order inside out
         colors = ["red", "magenta", "blue", "cyan", "green", "yellow"]
+        PARENS = ["(", ")", "[", "]", "{", "}"]
+        OPENS = [PARENS[i] for i in range(0, len(PARENS), 2)]
+        CLOSES  = [PARENS[i] for i in range(1, len(PARENS), 2)]
+
         cur_nested_lvl = -1
         max_nested_lvl= -1
         s = repr(expr)
         nested_lvls = [-1 for i in range(len(s))]
         ret = []
         for i, c in enumerate(s):
-            if c == "(":
+            if c in OPENS:
                 cur_nested_lvl += 1
                 nested_lvls[i] = cur_nested_lvl
-            elif c == ")": 
+            elif c in CLOSES: 
                 nested_lvls[i] = cur_nested_lvl
                 cur_nested_lvl -= 1
             max_nested_lvl = max(cur_nested_lvl, max_nested_lvl) 
         
         for i, c in enumerate(s):
-            if c in "()":
+            if c in PARENS:
                 l = max_nested_lvl - nested_lvls[i]
                 _c = c
                 if l < len(colors):
@@ -190,7 +194,7 @@ class Exists(LambdaExpr):
         return f"{self._exists_unicode}{''.join(list(map(str, self.vars)))}.{str(self.formula)}"
     
     def __repr__(self) -> str:
-        return f"{self._exists_unicode}{''.join(list(map(repr, self.vars)))}.{repr(self.formula)}"
+        return f"{self._exists_unicode}{''.join(list(map(repr, self.vars)))}[{repr(self.formula)}]"
     
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Exists):
@@ -219,7 +223,7 @@ class ForAll(LambdaExpr):
         return f"{self._forall_unicode}{''.join(list(map(str, self.vars)))}.{str(self.formula)}"
     
     def __repr__(self) -> str:
-        return f"{self._forall_unicode}{''.join(list(map(repr, self.vars)))}.{repr(self.formula)}"
+        return f"{self._forall_unicode}{''.join(list(map(repr, self.vars)))}[{repr(self.formula)}]"
     
     def __eq__(self, other: object) -> bool:
         if isinstance(other, ForAll):

@@ -41,8 +41,14 @@ DEP_PREFIX = "l-"
 class DepTree(Tree):
     """
     For now, keep track of label, word/dependencies, and associated lambda expr
+    TODO: formalize dependency tree
     """
-    def __init__(self, label: str, is_word: bool = False, is_dep:bool = False) -> None:
+    def __init__(self, 
+                label: str, 
+                is_word: bool = False,
+                is_dep:bool = False, 
+                pos: str = "", 
+                ent_type: str = "") -> None:
         super().__init__()
         if [is_word, is_dep].count(True) != 1: 
             raise Exception("Exactly one of {} must be true."
@@ -50,6 +56,8 @@ class DepTree(Tree):
         self._label = label
         self._is_word = is_word
         self._is_dep = is_dep
+        self._pos = pos 
+        self._ent_type = ent_type
         
         self._lambda_expr = None
     
@@ -65,6 +73,11 @@ class DepTree(Tree):
         elif self.is_dep():
             return DEP_PREFIX + self.label()
         raise Exception("Code should not reach here.")
+    def pos(self):
+        return self._pos
+    def ent_type(self):
+        return self._ent_type
+
     def set_lambda_expr(self, expr: LambdaExpr):
         self._lambda_expr = expr
     def lambda_expr(self) -> LambdaExpr:
@@ -74,10 +87,12 @@ class DepTree(Tree):
     
     def copy_node_data(self):
         """Return a shallow copy of this node data without any tree-related pointers"""
-        dt =  DepTree(
+        dt = DepTree(
             self.label(), 
             is_word=self.is_word(),
-            is_dep=self.is_dep()
+            is_dep=self.is_dep(), 
+            pos=self.pos(),
+            ent_type=self.ent_type()
         )
         if self._lambda_expr != None:
             dt.set_lambda_expr(self._lambda_expr)
@@ -98,12 +113,11 @@ class DepTree(Tree):
         """ Assert the shape of the tree
         """
         if root.is_leaf():
-            assert root.is_word()
+            assert root.is_word() and root.pos() != ""
             return True
         assert root.is_dep()
         for i, c in enumerate(root.children):
             if i == 0: 
                 assert isinstance(c, DepTree) and c.is_leaf() and c.is_word()
-            else: 
-                DepTree.validate(c)
+            DepTree.validate(c)
         return True
